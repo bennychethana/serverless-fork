@@ -1,0 +1,37 @@
+name: Package and Deploy Lambda
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  package-lambda:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install Dependencies
+      run: |
+        pip install -r requirements.txt -t package/
+        cp *.py package/
+        cd package && zip -r ../lambda_function.zip .
+
+    - name: Upload to S3
+      uses: aws-actions/configure-aws-credentials@v3
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+
+    - name: Upload Zip
+      run: |
+        aws s3 cp lambda_function.zip s3://myawsbucketbenny/lambda_function-$(date +%Y%m%d%H%M%S).zip
+
